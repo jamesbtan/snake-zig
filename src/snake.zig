@@ -26,7 +26,7 @@ pub const Snake = struct {
         self.pos.deinit();
     }
 
-    fn getHead(self: *const Self) [2]u32 {
+    pub fn getHead(self: *const Self) [2]u32 {
         return self.pos.peekItem(self.pos.count - 1);
     }
 

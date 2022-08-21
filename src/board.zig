@@ -11,8 +11,16 @@ food: [2]u32,
 const Self = @This();
 
 pub fn init(allocator: std.mem.Allocator, board_dim: [2]u32) !Self {
+    prng.seed(blk: {
+        var seed: u64 = undefined;
+        try std.os.getrandom(std.mem.asBytes(&seed));
+        break :blk seed;
+    });
     var board = Self{
-        .snake = try s.Snake.init(allocator, randCoord(board_dim)),
+        .snake = try s.Snake.init(
+            allocator,
+            randCoord(.{ board_dim[0] / 2, board_dim[1] }),
+        ),
         .bounds = board_dim,
         .food = undefined,
     };
@@ -49,6 +57,11 @@ fn snakeOnFood(self: *const Self) bool {
     return false;
 }
 
+fn headOnFood(self: *const Self) bool {
+    const head = self.snake.getHead();
+    return std.mem.eql(u32, &head, &self.food);
+}
+
 fn placeFood(self: *Self) void {
     while (true) {
         self.food = randCoord(self.bounds);
@@ -58,7 +71,7 @@ fn placeFood(self: *Self) void {
 
 pub fn turn(self: *Self) !void {
     self.snake.turn();
-    if (self.snakeOnFood()) {
+    if (self.headOnFood()) {
         try self.snake.moveAndGrow();
         self.placeFood();
     } else {

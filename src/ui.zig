@@ -105,33 +105,37 @@ fn gameLoop(self: *Self) !State {
     return self.handleInput();
 }
 
+fn pauseLoop(self: *Self) !State {
+    const ev = try SDL.waitEvent();
+    switch (ev) {
+        .quit => return .quitting,
+        .key_down => |kev| {
+            switch (kev.keycode) {
+                .space => return .playing,
+                .q => return .quitting,
+                .r => {
+                    self.board = try self.board.reset();
+                    return .playing;
+                },
+                else => return .paused,
+            }
+        },
+        else => return .paused,
+    }
+}
+
 pub fn mainLoop(self: *Self) !void {
-    outer: while (true) {
-        const state = try self.gameLoop();
-        SDL.delay(100);
+    var state: State = .playing;
+    while (true) {
         switch (state) {
             .quitting => break,
             .dead, .paused => {
-                while (true) {
-                    const ev = try SDL.waitEvent();
-                    switch (ev) {
-                        .quit => break :outer,
-                        .key_down => |kev| {
-                            switch (kev.keycode) {
-                                .space => break,
-                                .q => break :outer,
-                                .r => {
-                                    self.board = try self.board.reset();
-                                    break;
-                                },
-                                else => continue,
-                            }
-                        },
-                        else => continue,
-                    }
-                }
+                state = try self.pauseLoop();
             },
-            .playing => continue,
+            .playing => {
+                state = try self.gameLoop();
+                SDL.delay(100);
+            },
         }
     }
 }
